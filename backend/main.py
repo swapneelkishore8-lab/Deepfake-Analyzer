@@ -108,10 +108,15 @@ async def analyze_media(file: UploadFile = File(...)) -> AnalysisResponse:
     file_path = UPLOAD_DIR / f"{analysis_id}{file_extension}"
     
     try:
-        # Save uploaded file
-        content = await file.read()
+        # Save uploaded file (streaming to avoid loading full payload into memory)
         with open(file_path, "wb") as f:
-            f.write(content)
+            chunk_size = 8 * 1024 * 1024  # 8MB
+            while True:
+                chunk = await file.read(chunk_size)
+                if not chunk:
+                    break
+                f.write(chunk)
+        
         
         # Determine file type and analyze
         if content_type in allowed_audio or file_extension in ['.wav', '.mp3', '.m4a', '.flac']:
